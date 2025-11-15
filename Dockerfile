@@ -10,6 +10,9 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
+# Ensure curl is available for health checks
+RUN apt-get update && apt-get install -y curl
+
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
