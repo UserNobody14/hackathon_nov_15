@@ -2,13 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 
-from llm import (
-    BookmarkPayload,
-    BrowsingHistoryPayload,
-    LLMSuggestionError,
-    OpenTabPayload,
-    select_tabs_with_llm,
-)
+from llm import BookmarkPayload, LLMSuggestionError, select_tabs_with_llm
 
 from dotenv import load_dotenv
 
@@ -36,24 +30,9 @@ class Bookmark(BaseModel):
     description: str | None = None
 
 
-class HistoryEntry(BaseModel):
-    title: str
-    url: HttpUrl
-    last_visited: str | None = None
-
-
-class OpenTab(BaseModel):
-    title: str
-    url: HttpUrl
-    opened_at: str | None = None
-    pinned: bool | None = None
-
-
 class TabPlanRequest(BaseModel):
     prompt: str
     bookmarks: list[Bookmark]
-    history: list[HistoryEntry] | None = None
-    open_tabs: list[OpenTab] | None = None
 
 
 class Tab(BaseModel):
@@ -83,28 +62,9 @@ async def plan_tabs_llm(
             BookmarkPayload.model_validate(bookmark.model_dump())
             for bookmark in request.bookmarks
         ]
-        history_payload = (
-            [
-                BrowsingHistoryPayload.model_validate(item.model_dump())
-                for item in request.history
-            ]
-            if request.history
-            else None
-        )
-        open_tabs_payload = (
-            [
-                OpenTabPayload.model_validate(item.model_dump())
-                for item in request.open_tabs
-            ]
-            if request.open_tabs
-            else None
-        )
-
         suggestions = await select_tabs_with_llm(
             prompt=request.prompt,
             bookmarks=bookmarks_payload,
-            history=history_payload,
-            open_tabs=open_tabs_payload,
             max_tabs=max_tabs,
             model=model,
             temperature=temperature,

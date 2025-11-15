@@ -63,19 +63,6 @@ class BookmarkPayload(BaseModel):
     description: str | None = None
 
 
-class BrowsingHistoryPayload(BaseModel):
-    title: str
-    url: HttpUrl
-    last_visited: str | None = None
-
-
-class OpenTabPayload(BaseModel):
-    title: str
-    url: HttpUrl
-    opened_at: str | None = None
-    pinned: bool | None = None
-
-
 @dataclass(frozen=True)
 class TabSuggestion:
     title: str
@@ -98,11 +85,7 @@ def _get_client():
 
 
 def _build_user_message(
-    prompt: str,
-    bookmarks: list[BookmarkPayload],
-    max_tabs: int,
-    history: list[BrowsingHistoryPayload] | None = None,
-    open_tabs: list[OpenTabPayload] | None = None,
+    prompt: str, bookmarks: list[BookmarkPayload], max_tabs: int
 ) -> str:
     bookmark_lines = []
     for index, bookmark in enumerate(bookmarks, start=1):
@@ -118,39 +101,11 @@ def _build_user_message(
         "\n".join(bookmark_lines) if bookmark_lines else "No bookmarks supplied."
     )
 
-    history_block = "No history items supplied."
-    if history:
-        history_lines = []
-        for index, entry in enumerate(history, start=1):
-            last_visited_text = (
-                f" (last visited: {entry.last_visited})" if entry.last_visited else ""
-            )
-            history_lines.append(
-                f"{index}. {entry.title} — {entry.url}{last_visited_text}"
-            )
-        history_block = "\n".join(history_lines)
-
-    open_tabs_block = "No open tabs supplied."
-    if open_tabs:
-        open_tab_lines = []
-        for index, tab in enumerate(open_tabs, start=1):
-            status_parts = []
-            if tab.pinned is not None:
-                status_parts.append("pinned" if tab.pinned else "unpinned")
-            if tab.opened_at:
-                status_parts.append(f"opened at {tab.opened_at}")
-            status_suffix = f" ({', '.join(status_parts)})" if status_parts else ""
-            open_tab_lines.append(f"{index}. {tab.title} — {tab.url}{status_suffix}")
-        open_tabs_block = "\n".join(open_tab_lines)
-
     return (
         "User prompt:\n"
         f"{prompt.strip()}\n\n"
         f"Bookmarks:\n{bookmarks_block}\n\n"
-        f"Recent history entries:\n{history_block}\n\n"
-        f"Currently open tabs:\n{open_tabs_block}\n\n"
-        f"Select up to {max_tabs} bookmarks that best satisfy the user's prompt. "
-        "You may reference history or existing tabs when explaining your choices."
+        f"Select up to {max_tabs} bookmarks that best satisfy the user's prompt."
     )
 
 
@@ -158,8 +113,6 @@ async def select_tabs_with_llm(
     *,
     prompt: str,
     bookmarks: list[BookmarkPayload],
-    history: list[BrowsingHistoryPayload] | None = None,
-    open_tabs: list[OpenTabPayload] | None = None,
     max_tabs: int,
     model: str | None = None,
     temperature: float = 0.2,
@@ -173,10 +126,6 @@ async def select_tabs_with_llm(
         The user's goal or task description.
     bookmarks:
         The list of available bookmarks to choose from (must not be empty).
-    history:
-        Optional list of recent browser history items to provide extra context.
-    open_tabs:
-        Optional list of currently open tabs to avoid duplication or leverage existing pages.
     max_tabs:
         The upper bound on the number of tabs to return.
     model:
@@ -199,32 +148,8 @@ async def select_tabs_with_llm(
     except ValidationError as exc:
         raise ValueError(f"Invalid bookmark payload: {exc}") from exc
 
-    validated_history = None
-    if history is not None:
-        try:
-            validated_history = [
-                BrowsingHistoryPayload.model_validate(item) for item in history
-            ]
-        except ValidationError as exc:
-            raise ValueError(f"Invalid browsing history payload: {exc}") from exc
-
-    validated_open_tabs = None
-    if open_tabs is not None:
-        try:
-            validated_open_tabs = [
-                OpenTabPayload.model_validate(item) for item in open_tabs
-            ]
-        except ValidationError as exc:
-            raise ValueError(f"Invalid open tab payload: {exc}") from exc
-
     client = _get_client()
-    user_message = _build_user_message(
-        cleaned_prompt,
-        validated_bookmarks,
-        max_tabs,
-        history=validated_history,
-        open_tabs=validated_open_tabs,
-    )
+    user_message = _build_user_message(cleaned_prompt, validated_bookmarks, max_tabs)
     chosen_model = model or DEFAULT_MODEL
 
     try:
