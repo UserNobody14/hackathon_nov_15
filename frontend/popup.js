@@ -216,7 +216,7 @@ const handleSubmit = async (event) => {
     const limit = parseNumericInput(limitEl, 5, 1, 10);
     const temperature = parseNumericInput(tempEl, 0.2, 0, 2);
 
-    setStatus("Requesting tab plan from https://hackathon.sobel.club…");
+    setStatus("Requesting tab plan from server…");
 
     const response = await fetch(
       `https://hackathon.sobel.club/tabs?limit=${encodeURIComponent(
