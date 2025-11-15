@@ -5,6 +5,7 @@ const promptEl = document.querySelector("#prompt");
 const limitEl = document.querySelector("#limit");
 const tempEl = document.querySelector("#temperature");
 const submitButton = document.querySelector("#submit-button");
+const speechButton = document.querySelector("#speech-button");
 
 const BOOKMARK_LIMIT = 200;
 const HISTORY_LIMIT = 20;
@@ -189,6 +190,10 @@ const handleSubmit = async (event) => {
   event.preventDefault();
 
   const prompt = promptEl.value.trim();
+  await sendToServer(prompt);
+};
+
+const sendToServer = async (prompt) => {
   if (!prompt) {
     setStatus("Please enter a prompt before planning tabs.", true);
     return;
@@ -255,6 +260,32 @@ const handleSubmit = async (event) => {
     toggleLoading(false);
   }
 };
+
+if (speechButton) {
+  speechButton.addEventListener("click", () => {
+    // chrome.tabs.create({
+    //   url: chrome.runtime.getURL("mic.html"),
+    // });
+    speechButton.textContent = "🎤 Listening...";
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.start();
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      promptEl.value = transcript;
+      speechButton.textContent = "🎤 Processing...";
+      sendToServer(transcript);
+    };
+    recognition.onerror = (event) => {
+      setStatus(`Speech recognition error: ${event.error}`, true);
+    };
+    recognition.onend = () => {
+      speechButton.textContent = "🎤 Speak";
+    };
+  });
+}
 
 formEl.addEventListener("submit", handleSubmit);
 
