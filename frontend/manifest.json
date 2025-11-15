@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmark Tab Planner",
+  "description": "Collects bookmarks, history, and open tabs to request suggestions from the Tab Planner service.",
+  "version": "0.1.0",
+  "permissions": ["bookmarks", "tabs", "history"],
+  "host_permissions": ["http://localhost:8000/*"],
+  "action": {
+    "default_title": "Plan Tabs",
+    "default_popup": "popup.html"
+  }
+}
+
