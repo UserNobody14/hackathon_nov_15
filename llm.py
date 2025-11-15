@@ -47,7 +47,7 @@ SYSTEM_PROMPT = """You are a research assistant tasked with helping a user decid
 which saved bookmarks to open in new browser tabs for their current task.
 
 General rules:
-- Only choose from the bookmarks provided. Do not invent new URLs.
+- Only choose from the bookmarks, history entries, or open tabs provided. Do not invent new URLs.
 - Choose the smallest set of tabs that still covers the user's intent.
 - Prioritize relevance to the prompt, freshness implied by the prompt, and topic coverage.
 - Provide a concise reason for each selection. Mention why the bookmark helps.
@@ -217,6 +217,12 @@ async def select_tabs_with_llm(
         except ValidationError as exc:
             raise ValueError(f"Invalid open tab payload: {exc}") from exc
 
+    allowed_urls: set[str] = {str(bookmark.url) for bookmark in validated_bookmarks}
+    if validated_history:
+        allowed_urls.update(str(entry.url) for entry in validated_history)
+    if validated_open_tabs:
+        allowed_urls.update(str(tab.url) for tab in validated_open_tabs)
+
     client = _get_client()
     user_message = _build_user_message(
         cleaned_prompt,
@@ -262,18 +268,26 @@ async def select_tabs_with_llm(
         )
 
     suggestions: list[TabSuggestion] = []
+    seen_urls: set[str] = set()
     for item in tabs_data:
         if not isinstance(item, dict):
+            continue
+        url_value = item.get("url")
+        if not isinstance(url_value, str):
+            continue
+        normalized_url = url_value.strip()
+        if normalized_url not in allowed_urls or normalized_url in seen_urls:
             continue
         try:
             suggestion = TabSuggestion(
                 title=item["title"],
-                url=item["url"],
+                url=normalized_url,
                 reason=item.get("reason", "No reason provided."),
                 score=float(item.get("score", 0.5)),
             )
         except (KeyError, TypeError, ValueError):
             continue
+        seen_urls.add(normalized_url)
         suggestions.append(suggestion)
 
     return suggestions[:max_tabs]
