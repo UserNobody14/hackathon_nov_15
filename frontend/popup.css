@@ -1,0 +1,104 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+body {
+  margin: 0;
+  padding: 0.75rem;
+  background: canvas;
+  color: canvastext;
+  width: 360px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+textarea,
+input[type="number"] {
+  width: 100%;
+  padding: 0.4rem;
+  border-radius: 0.4rem;
+  border: 1px solid color-mix(in srgb, canvastext 25%, transparent);
+  background: color-mix(in srgb, canvas 92%, canvastext 8%);
+  color: canvastext;
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+}
+
+button {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.4rem;
+  border: none;
+  color: white;
+  background: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+#status {
+  min-height: 1.25rem;
+  font-size: 0.9rem;
+  color: color-mix(in srgb, canvastext 65%, #2563eb 35%);
+}
+
+#results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.suggestion {
+  border: 1px solid color-mix(in srgb, canvastext 15%, transparent);
+  border-radius: 0.4rem;
+  padding: 0.5rem;
+  background: color-mix(in srgb, canvas 96%, canvastext 4%);
+}
+
+.suggestion a {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.suggestion a:hover,
+.suggestion a:focus {
+  text-decoration: underline;
+}
+
+.suggestion .score {
+  font-size: 0.85rem;
+  color: color-mix(in srgb, canvastext 55%, #16a34a 45%);
+}
+
