@@ -80,7 +80,9 @@ const chromePromise = (fn) =>
   });
 
 const collectBookmarks = async () => {
-  const tree = await chromePromise((resolve) => chrome.bookmarks.getTree(resolve));
+  const tree = await chromePromise((resolve) =>
+    chrome.bookmarks.getTree(resolve)
+  );
 
   const bookmarks = [];
   const stack = [...tree];
@@ -115,8 +117,8 @@ const collectHistory = async () => {
         maxResults: HISTORY_LIMIT,
         startTime,
       },
-      resolve,
-    ),
+      resolve
+    )
   );
 
   return items
@@ -171,6 +173,7 @@ const renderResults = (suggestions) => {
 
     container.append(heading, reason, score);
     resultsEl.appendChild(container);
+    chrome.tabs.create({ url: item.url });
   });
 };
 
@@ -205,7 +208,7 @@ const handleSubmit = async (event) => {
     if (bookmarks.length === 0) {
       setStatus(
         "No bookmarks found. Add at least one bookmark to use the planner.",
-        true,
+        true
       );
       return;
     }
@@ -213,11 +216,11 @@ const handleSubmit = async (event) => {
     const limit = parseNumericInput(limitEl, 5, 1, 10);
     const temperature = parseNumericInput(tempEl, 0.2, 0, 2);
 
-    setStatus("Requesting tab plan from localhost:8000…");
+    setStatus("Requesting tab plan from https://hackathon.sobel.club…");
 
     const response = await fetch(
-      `http://localhost:8000/tabs?limit=${encodeURIComponent(
-        limit,
+      `https://hackathon.sobel.club/tabs?limit=${encodeURIComponent(
+        limit
       )}&temperature=${encodeURIComponent(temperature)}`,
       {
         method: "POST",
@@ -230,7 +233,7 @@ const handleSubmit = async (event) => {
           history,
           open_tabs: openTabs,
         }),
-      },
+      }
     );
 
     if (!response.ok) {
@@ -256,4 +259,3 @@ const handleSubmit = async (event) => {
 formEl.addEventListener("submit", handleSubmit);
 
 renderResults([]);
-
