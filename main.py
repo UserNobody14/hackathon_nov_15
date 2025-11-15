@@ -84,11 +84,6 @@ def _score_bookmark(bookmark: Bookmark, prompt_tokens: set[str]) -> tuple[float,
     return 0.0, "No keyword matches; keeping bookmark for context."
 
 
-@app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
-
-
 @app.post("/tabs", response_model=TabPlanResponse)
 async def plan_tabs(
     request: TabPlanRequest, limit: int = MAX_TABS_DEFAULT
