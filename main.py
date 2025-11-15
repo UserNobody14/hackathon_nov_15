@@ -5,6 +5,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 
+from llm import BookmarkPayload, LLMSuggestionError, select_tabs_with_llm
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = FastAPI(
     title="Bookmark Tab Planner",
     description="Suggests which browser tabs to open based on a prompt and saved bookmarks.",
@@ -85,29 +91,45 @@ def _score_bookmark(bookmark: Bookmark, prompt_tokens: set[str]) -> tuple[float,
 
 
 @app.post("/tabs", response_model=TabPlanResponse)
-async def plan_tabs(
-    request: TabPlanRequest, limit: int = MAX_TABS_DEFAULT
+async def plan_tabs_llm(
+    request: TabPlanRequest,
+    limit: int = MAX_TABS_DEFAULT,
+    model: str | None = None,
+    temperature: float = 0.2,
 ) -> TabPlanResponse:
-    prompt_tokens = _tokenize(request.prompt)
-    evaluated: list[tuple[float, str, int, Bookmark]] = []
+    max_tabs = limit if limit > 0 else MAX_TABS_DEFAULT
+    try:
+        bookmarks_payload = [
+            BookmarkPayload.model_validate(bookmark.model_dump())
+            for bookmark in request.bookmarks
+        ]
+        suggestions = await select_tabs_with_llm(
+            prompt=request.prompt,
+            bookmarks=bookmarks_payload,
+            max_tabs=max_tabs,
+            model=model,
+            temperature=temperature,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LLMSuggestionError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    for index, bookmark in enumerate(request.bookmarks):
-        score, reason = _score_bookmark(bookmark, prompt_tokens)
-        evaluated.append((score, reason, index, bookmark))
+    if not suggestions:
+        raise HTTPException(
+            status_code=502,
+            detail="Language model returned no tab suggestions.",
+        )
 
-    evaluated.sort(key=lambda item: (-item[0], item[2]))
-
-    if limit <= 0:
-        limit = len(evaluated)
-
-    selected = evaluated[:limit]
     tabs = [
-        Tab(title=bookmark.title, url=bookmark.url, reason=reason, score=score)
-        for score, reason, _, bookmark in selected
+        Tab(
+            title=suggestion.title,
+            url=suggestion.url,
+            reason=suggestion.reason,
+            score=suggestion.score,
+        )
+        for suggestion in suggestions
     ]
-
-    if not tabs:
-        raise HTTPException(status_code=400, detail="No bookmarks provided")
 
     return TabPlanResponse(tabs=tabs)
 
