@@ -70,6 +70,12 @@ class TabPlanResponse(BaseModel):
 MAX_TABS_DEFAULT = 5
 
 
+# Health check
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.post("/tabs", response_model=TabPlanResponse)
 async def plan_tabs_llm(
     request: TabPlanRequest,
